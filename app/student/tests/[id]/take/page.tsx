@@ -21,6 +21,9 @@ export default async function TakeTestPage({ params }: { params: Promise<{ id: s
           question: {
             select: { id: true, text: true, options: true, topic: true, difficulty: true },
           },
+          questionCoding: {
+            select: { id: true, title: true, description: true, language: true, starterCode: true, topic: true, difficulty: true, testCases: true },
+          },
         },
         orderBy: { order: "asc" },
       },
@@ -31,7 +34,7 @@ export default async function TakeTestPage({ params }: { params: Promise<{ id: s
 
   const existingAttempt = await db.attempt.findUnique({
     where: { testId_studentId: { testId, studentId: userId } },
-    include: { answers: true },
+    include: { answers: true, answersCoding: true },
   });
 
   if (existingAttempt?.status === "SUBMITTED") {
@@ -42,8 +45,7 @@ export default async function TakeTestPage({ params }: { params: Promise<{ id: s
   let questionOrder: string[];
 
   if (!attempt) {
-    const questionIds = test.questions.map((q) => q.question.id);
-    questionOrder = shuffleArray([...questionIds], userId);
+    questionOrder = test.questions.map((q) => (q.question?.id || q.questionCoding?.id) as string);
 
     attempt = await db.attempt.create({
       data: {
@@ -52,56 +54,63 @@ export default async function TakeTestPage({ params }: { params: Promise<{ id: s
         questionOrder,
         status: "IN_PROGRESS",
       },
-      include: { answers: true },
+      include: { answers: true, answersCoding: true },
     });
   } else {
     questionOrder = attempt.questionOrder as string[];
   }
 
   const orderedQuestions = questionOrder.map((qId) => {
-    const tq = test.questions.find((q) => q.question.id === qId)!;
+    const tq = test.questions.find((q) => (q.question?.id === qId) || (q.questionCoding?.id === qId))!;
+    if (tq.question) {
+      return {
+        type: "MCQ",
+        id: tq.question.id,
+        text: tq.question.text,
+        options: tq.question.options as string[],
+        topic: tq.question.topic,
+        difficulty: tq.question.difficulty,
+        marks: tq.marks,
+      };
+    }
     return {
-      id: tq.question.id,
-      text: tq.question.text,
-      options: shuffleOptions(tq.question.options as string[], userId, qId),
-      topic: tq.question.topic,
-      difficulty: tq.question.difficulty,
+      type: "CODING",
+      id: tq.questionCoding!.id,
+      title: tq.questionCoding!.title,
+      description: tq.questionCoding!.description,
+      language: tq.questionCoding!.language,
+      starterCode: tq.questionCoding!.starterCode,
+      topic: tq.questionCoding!.topic,
+      difficulty: tq.questionCoding!.difficulty,
+      testCases: (tq.questionCoding!.testCases as any[]).map(tc => ({
+        input: tc.input,
+        expectedOutput: tc.isHidden ? undefined : tc.expectedOutput,
+        isHidden: tc.isHidden
+      })),
       marks: tq.marks,
     };
   });
 
-  const savedAnswers = (attempt.answers as { questionId: string; selectedOptions: unknown }[]).map((a) => ({
+  const savedAnswers = (attempt.answers as any[]).map((a) => ({
     questionId: a.questionId,
     selectedOptions: a.selectedOptions as number[],
+  }));
+
+  const savedCodingAnswers = ((attempt as any).answersCoding || []).map((a: any) => ({
+    questionId: a.questionId,
+    submittedCode: a.submittedCode as string,
+    testCaseResults: a.testCaseResults as any[],
   }));
 
   return (
     <TestEngine
       testId={testId}
       attemptId={attempt.id}
-      questions={orderedQuestions}
+      questions={orderedQuestions as any}
       startedAt={attempt.startedAt.toISOString()}
       durationMins={test.durationMins}
       initialAnswers={savedAnswers}
+      initialCodingAnswers={savedCodingAnswers}
     />
   );
-}
-
-function shuffleArray(arr: string[], seed: string): string[] {
-  const seeded = [...arr];
-  let hash = 0;
-  for (const c of seed) hash = ((hash << 5) - hash + c.charCodeAt(0)) | 0;
-  for (let i = seeded.length - 1; i > 0; i--) {
-    hash = ((hash << 5) - hash + i) | 0;
-    const j = Math.abs(hash) % (i + 1);
-    [seeded[i], seeded[j]] = [seeded[j], seeded[i]];
-  }
-  return seeded;
-}
-
-function shuffleOptions(options: string[], studentId: string, questionId: string): string[] {
-  return shuffleArray(
-    options.map((_, i) => String(i)),
-    studentId + questionId
-  ).map((i) => options[Number(i)]);
 }

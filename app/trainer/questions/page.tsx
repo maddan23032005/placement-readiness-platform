@@ -6,8 +6,10 @@ import { Input, Select, Textarea } from "@/components/ui/Input";
 import { Card, CardHeader, CardTitle, EmptyState } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
-import { Plus, Trash2, Pencil, Search, BookOpen, X, Check } from "lucide-react";
+import { Plus, Trash2, Pencil, Search, BookOpen, X, Check, Code } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 interface Question {
   id: string;
@@ -17,6 +19,14 @@ interface Question {
   options: string[];
   correctOptions: number[];
   tags: string[];
+}
+
+interface QuestionCoding {
+  id: string;
+  title: string;
+  topic: string;
+  difficulty: string;
+  language: string;
 }
 
 const TOPICS = ["DSA", "DBMS", "OS", "Networks", "OOP", "Aptitude", "Verbal", "SQL", "System Design", "Other"];
@@ -160,6 +170,7 @@ function QuestionForm({
 
 export default function QuestionsPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [codingQuestions, setCodingQuestions] = useState<QuestionCoding[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [topic, setTopic] = useState("");
@@ -177,6 +188,11 @@ export default function QuestionsPage() {
     const res = await fetch(`/api/questions/mcq?${params}`);
     const data = await res.json();
     setQuestions(data.questions || []);
+
+    const res2 = await fetch(`/api/questions/coding?${params}`);
+    const data2 = await res2.json();
+    setCodingQuestions(data2.questions || []);
+    
     setLoading(false);
   }
 
@@ -212,16 +228,24 @@ export default function QuestionsPage() {
     }
   }
 
+  async function handleDeleteCoding(id: string) {
+    if (!confirm("Delete this coding question?")) return;
+    const res = await fetch(`/api/questions/coding/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      toast.success("Coding question deleted.");
+      setCodingQuestions((q) => q.filter((x) => x.id !== id));
+    } else {
+      toast.error("Failed to delete question.");
+    }
+  }
+
   return (
     <>
       <div className="page-header">
         <div>
           <h1 className="page-title">Question Bank</h1>
-          <p className="page-subtitle">{questions.length} question{questions.length !== 1 ? "s" : ""} in your bank</p>
+          <p className="page-subtitle">Manage your MCQ and Coding questions</p>
         </div>
-        <Button onClick={() => { setEditingQ(null); setModalOpen(true); }}>
-          <Plus size={15} /> Add question
-        </Button>
       </div>
 
       {/* Filters */}
@@ -242,73 +266,175 @@ export default function QuestionsPage() {
         </select>
       </div>
 
-      <Card padding={false}>
-        {loading ? (
-          <div className="py-16 text-center text-sm text-[hsl(var(--text-muted))]">Loading questions...</div>
-        ) : questions.length === 0 ? (
-          <EmptyState
-            icon={<BookOpen size={36} />}
-            title="No questions found"
-            description="Add questions to your bank to use them in tests."
-            action={
-              <Button onClick={() => { setEditingQ(null); setModalOpen(true); }}>
-                <Plus size={14} /> Add question
+      <Tabs defaultValue="mcq" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="mcq">Multiple Choice</TabsTrigger>
+          <TabsTrigger value="coding">Coding Problems</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="mcq">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">MCQ Bank</h2>
+            <Button onClick={() => { setEditingQ(null); setModalOpen(true); }}>
+              <Plus size={15} /> Add MCQ
+            </Button>
+          </div>
+          <Card padding={false}>
+            {loading ? (
+              <div className="py-16 text-center text-sm text-[hsl(var(--text-muted))]">Loading questions...</div>
+            ) : questions.length === 0 ? (
+              <EmptyState
+                icon={<BookOpen size={36} />}
+                title="No MCQs found"
+                description="Add multiple choice questions to your bank."
+                action={
+                  <Button onClick={() => { setEditingQ(null); setModalOpen(true); }}>
+                    <Plus size={14} /> Add MCQ
+                  </Button>
+                }
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th className="w-12">#</th>
+                      <th>Question</th>
+                      <th>Topic</th>
+                      <th>Difficulty</th>
+                      <th>Options</th>
+                      <th className="text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {questions.map((q, i) => (
+                      <tr key={q.id}>
+                        <td className="text-[hsl(var(--text-muted))]">{i + 1}</td>
+                        <td className="max-w-xs">
+                          <p className="text-sm text-[hsl(var(--text-primary))] line-clamp-2">{q.text}</p>
+                        </td>
+                        <td><span className="badge-neutral">{q.topic}</span></td>
+                        <td>
+                          <span className={cn("badge",
+                            q.difficulty === "EASY" ? "badge-success" :
+                            q.difficulty === "MEDIUM" ? "badge-warning" : "badge-error"
+                          )}>{q.difficulty}</span>
+                        </td>
+                        <td className="text-sm text-[hsl(var(--text-muted))]">
+                          {(q.options as string[]).length} options
+                        </td>
+                        <td className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => { setEditingQ(q); setModalOpen(true); }}
+                              className="p-1.5 rounded-md text-[hsl(var(--text-muted))] hover:text-[hsl(var(--brand))] hover:bg-[hsl(var(--brand-light))] transition-colors"
+                              aria-label="Edit question"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(q.id)}
+                              className="p-1.5 rounded-md text-[hsl(var(--text-muted))] hover:text-[hsl(var(--error))] hover:bg-[hsl(var(--error)/0.08)] transition-colors"
+                              aria-label="Delete question"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="coding">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">Coding Problems</h2>
+            <Link href="/trainer/questions/coding/new">
+              <Button>
+                <Code size={15} /> Add Coding Question
               </Button>
-            }
-          />
-        ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th className="w-12">#</th>
-                <th>Question</th>
-                <th>Topic</th>
-                <th>Difficulty</th>
-                <th>Options</th>
-                <th className="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {questions.map((q, i) => (
-                <tr key={q.id}>
-                  <td className="text-[hsl(var(--text-muted))]">{i + 1}</td>
-                  <td className="max-w-xs">
-                    <p className="text-sm text-[hsl(var(--text-primary))] line-clamp-2">{q.text}</p>
-                  </td>
-                  <td><span className="badge-neutral">{q.topic}</span></td>
-                  <td>
-                    <span className={cn("badge",
-                      q.difficulty === "EASY" ? "badge-success" :
-                      q.difficulty === "MEDIUM" ? "badge-warning" : "badge-error"
-                    )}>{q.difficulty}</span>
-                  </td>
-                  <td className="text-sm text-[hsl(var(--text-muted))]">
-                    {(q.options as string[]).length} options
-                  </td>
-                  <td className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => { setEditingQ(q); setModalOpen(true); }}
-                        className="p-1.5 rounded-md text-[hsl(var(--text-muted))] hover:text-[hsl(var(--brand))] hover:bg-[hsl(var(--brand-light))] transition-colors"
-                        aria-label="Edit question"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(q.id)}
-                        className="p-1.5 rounded-md text-[hsl(var(--text-muted))] hover:text-[hsl(var(--error))] hover:bg-[hsl(var(--error)/0.08)] transition-colors"
-                        aria-label="Delete question"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
+            </Link>
+          </div>
+          <Card padding={false}>
+            {loading ? (
+              <div className="py-16 text-center text-sm text-[hsl(var(--text-muted))]">Loading questions...</div>
+            ) : codingQuestions.length === 0 ? (
+              <EmptyState
+                icon={<Code size={36} />}
+                title="No Coding Questions found"
+                description="Add coding problems for students to solve."
+                action={
+                  <Link href="/trainer/questions/coding/new">
+                    <Button>
+                      <Code size={14} /> Add Coding Question
+                    </Button>
+                  </Link>
+                }
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th className="w-12">#</th>
+                      <th>Title</th>
+                      <th>Topic</th>
+                      <th>Difficulty</th>
+                      <th>Language</th>
+                      <th className="text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {codingQuestions.map((q, i) => (
+                      <tr key={q.id}>
+                        <td className="text-[hsl(var(--text-muted))]">{i + 1}</td>
+                        <td>
+                          <p className="text-sm font-medium text-[hsl(var(--text-primary))]">{q.title}</p>
+                        </td>
+                        <td><span className="badge-neutral">{q.topic}</span></td>
+                        <td>
+                          <span className={cn("badge",
+                            q.difficulty === "EASY" ? "badge-success" :
+                            q.difficulty === "MEDIUM" ? "badge-warning" : "badge-error"
+                          )}>{q.difficulty}</span>
+                        </td>
+                        <td className="text-sm font-mono text-[hsl(var(--text-muted))]">
+                          {q.language}
+                        </td>
+                        <td className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Link href={`/trainer/questions/coding/${q.id}/edit`}>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-8 px-2"
+                              >
+                                <Pencil size={14} />
+                              </Button>
+                            </Link>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleDeleteCoding(q.id)}
+                              className="h-8 px-2 text-[hsl(var(--error))] hover:text-[hsl(var(--error))]"
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <Modal
         open={modalOpen}

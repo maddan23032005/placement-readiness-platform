@@ -1,17 +1,30 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
+import { motion } from "framer-motion";
 
 interface CardProps {
   className?: string;
   children: ReactNode;
   padding?: boolean;
+  delay?: number;
 }
 
-export function Card({ className, children, padding = true }: CardProps) {
+export function Card({ className, children, padding = true, delay = 0 }: CardProps) {
   return (
-    <div className={cn("card", padding && "p-6", className)}>
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay, ease: "easeOut" }}
+      className={cn(
+        "bg-[hsl(var(--surface))] rounded-2xl border border-[hsl(var(--border))] shadow-sm transition-all duration-300 hover:shadow-md hover:border-[hsl(var(--border-focus))/0.3]",
+        padding && "p-6",
+        className
+      )}
+    >
       {children}
-    </div>
+    </motion.div>
   );
 }
 

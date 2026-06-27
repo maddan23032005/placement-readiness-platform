@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
       questions: {
         create: questions.map((q) => ({
           questionId: q.questionId,
+          questionCodingId: q.questionCodingId,
           marks: q.marks,
           order: q.order,
         })),

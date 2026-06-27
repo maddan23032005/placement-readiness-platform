@@ -17,7 +17,7 @@ export async function POST(
 
   const attempt = await db.attempt.findUnique({
     where: { testId_studentId: { testId, studentId: session.user.id } },
-    include: { answers: true },
+    include: { answers: true, answersCoding: true },
   });
 
   if (!attempt) return NextResponse.json({ error: "No attempt found" }, { status: 404 });
@@ -32,7 +32,7 @@ export async function POST(
     where: { id: testId },
     include: {
       questions: {
-        include: { question: true },
+        include: { question: true, questionCoding: true },
         orderBy: { order: "asc" },
       },
     },
@@ -48,10 +48,23 @@ export async function POST(
 
   const result = await db.$transaction(async (tx) => {
     for (const ga of gradedAnswers) {
-      await tx.answerMCQ.updateMany({
-        where: { attemptId: attempt.id, questionId: ga.questionId },
-        data: { isCorrect: ga.isCorrect, marksAwarded: ga.marksAwarded },
-      });
+      if (ga.isCorrect !== undefined) {
+        // It could be an MCQ or Coding. The GradedAnswer interface might need updating.
+        // But we only update MCQ answers in db.$transaction for now if we can't distinguish.
+        // Actually, we can check if it's in attempt.answers or attempt.answersCoding.
+        const isCoding = attempt.answersCoding?.some(a => a.questionId === ga.questionId);
+        if (isCoding) {
+          await tx.answerCoding.updateMany({
+            where: { attemptId: attempt.id, questionId: ga.questionId },
+            data: { isCorrect: ga.isCorrect, marksAwarded: ga.marksAwarded },
+          });
+        } else {
+          await tx.answerMCQ.updateMany({
+            where: { attemptId: attempt.id, questionId: ga.questionId },
+            data: { isCorrect: ga.isCorrect, marksAwarded: ga.marksAwarded },
+          });
+        }
+      }
     }
 
     await tx.attempt.update({
@@ -64,7 +77,7 @@ export async function POST(
         attemptId: attempt.id,
         totalScore,
         maxScore,
-        topicBreakdown,
+        topicBreakdown: topicBreakdown as any,
         timeTakenSecs: tt,
       },
     });
@@ -76,9 +89,10 @@ export async function POST(
     }).catch(err => console.error("Percentile error:", err));
 
     return NextResponse.json({ result });
-  } catch (err) {
+  } catch (err: any) {
     console.error("[SUBMIT_ERROR]", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    require('fs').writeFileSync('c:\\Users\\murug\\Desktop\\placement-readiness-platform\\submit_error.log', err.stack || err.message || String(err));
+    return NextResponse.json({ error: err.message || "Internal server error", stack: err.stack }, { status: 500 });
   }
 }
 

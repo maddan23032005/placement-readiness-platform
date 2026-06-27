@@ -68,7 +68,7 @@ export function Select({ label, error, id, value, onChange, options, placeholder
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={cn("field appearance-none bg-white", error && "field-error", className)}
+        className={cn("field appearance-none bg-[hsl(var(--surface))]", error && "field-error", className)}
       >
         {placeholder && <option value="" disabled>{placeholder}</option>}
         {options.map((o) => (

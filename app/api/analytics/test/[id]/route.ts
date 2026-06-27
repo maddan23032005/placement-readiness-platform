@@ -16,7 +16,10 @@ export async function GET(
     where: { id, createdById: session.user.id },
     include: {
       questions: {
-        include: { question: { select: { id: true, text: true, topic: true } } },
+        include: {
+          question: { select: { id: true, text: true, topic: true } },
+          questionCoding: { select: { id: true, title: true, topic: true } },
+        },
         orderBy: { order: "asc" },
       },
     },
@@ -35,17 +38,28 @@ export async function GET(
     select: { questionId: true, isCorrect: true },
   });
 
+  const answersCoding = await db.answerCoding.findMany({
+    where: { attempt: { testId: id, status: "SUBMITTED" } },
+    select: { questionId: true, isCorrect: true },
+  });
+
   const questionStats = test.questions.map((tq) => {
-    const qAnswers = answers.filter((a) => a.questionId === tq.question.id);
+    const isCoding = !!tq.questionCoding;
+    const qId = isCoding ? tq.questionCoding!.id : tq.question!.id;
+    const qAnswers = isCoding 
+      ? answersCoding.filter((a) => a.questionId === qId)
+      : answers.filter((a) => a.questionId === qId);
+
     const total = qAnswers.length;
     const correct = qAnswers.filter((a) => a.isCorrect).length;
     return {
-      questionId: tq.question.id,
-      text: tq.question.text,
-      topic: tq.question.topic,
+      questionId: qId,
+      text: isCoding ? tq.questionCoding!.title : tq.question!.text,
+      topic: isCoding ? tq.questionCoding!.topic : tq.question!.topic,
       total,
       correct,
       correctRate: total > 0 ? Math.round((correct / total) * 100) : 0,
+      isCoding,
     };
   });
 

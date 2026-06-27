@@ -20,15 +20,23 @@ interface GradeInput {
     questionId: string;
     selectedOptions: unknown;
   }>;
+  answersCoding?: Array<{
+    questionId: string;
+    isCorrect: boolean | null;
+  }>;
 }
 
 interface TestQuestion {
-  questionId: string;
+  questionId: string | null;
+  questionCodingId: string | null;
   marks: number;
-  question: {
+  question?: {
     correctOptions: unknown;
     topic: string;
-  };
+  } | null;
+  questionCoding?: {
+    topic: string;
+  } | null;
 }
 
 interface TestConfig {
@@ -45,11 +53,19 @@ export function gradeAttempt(
   const questionMap = new Map<string, { marks: number; correctOptions: number[]; topic: string }>();
 
   for (const tq of testQuestions) {
-    questionMap.set(tq.questionId, {
-      marks: tq.marks,
-      correctOptions: tq.question.correctOptions as number[],
-      topic: tq.question.topic,
-    });
+    if (tq.question) {
+      questionMap.set(tq.questionId!, {
+        marks: tq.marks,
+        correctOptions: tq.question.correctOptions as number[],
+        topic: tq.question.topic,
+      });
+    } else if (tq.questionCoding) {
+      questionMap.set(tq.questionCodingId!, {
+        marks: tq.marks,
+        correctOptions: [],
+        topic: tq.questionCoding.topic,
+      });
+    }
   }
 
   let totalScore = 0;
@@ -58,7 +74,8 @@ export function gradeAttempt(
   const gradedAnswers: GradedAnswer[] = [];
 
   for (const tq of testQuestions) {
-    const qData = questionMap.get(tq.questionId)!;
+    const qId = tq.questionId || tq.questionCodingId!;
+    const qData = questionMap.get(qId)!;
     const topic = qData.topic;
 
     if (!topicBreakdown[topic]) {
@@ -68,31 +85,51 @@ export function gradeAttempt(
     topicBreakdown[topic].maxScore += qData.marks;
     maxScore += qData.marks;
 
-    const answer = attempt.answers.find((a) => a.questionId === tq.questionId);
-    const selected = (answer?.selectedOptions ?? []) as number[];
-    const correct = qData.correctOptions;
-
-    // Check correctness — all selected must match correct exactly
-    const isCorrect =
-      selected.length === correct.length &&
-      correct.every((c) => selected.includes(c)) &&
-      selected.every((s) => correct.includes(s));
-
+    const tqIsCoding = !!tq.questionCoding;
+    let isCorrect = false;
     let marksAwarded = 0;
-    if (selected.length > 0) {
-      if (isCorrect) {
-        marksAwarded = qData.marks;
-        totalScore += qData.marks;
-        topicBreakdown[topic].correct += 1;
-        topicBreakdown[topic].score += qData.marks;
-      } else if (testConfig.negativeMarking) {
-        marksAwarded = -(qData.marks * testConfig.negativeValue);
-        totalScore += marksAwarded;
-        topicBreakdown[topic].score += marksAwarded;
+    let answered = false;
+
+    if (!tqIsCoding) {
+      const answer = attempt.answers.find((a) => a.questionId === qId);
+      const selected = (answer?.selectedOptions ?? []) as number[];
+      const correct = qData.correctOptions;
+
+      isCorrect =
+        selected.length === correct.length &&
+        correct.every((c) => selected.includes(c)) &&
+        selected.every((s) => correct.includes(s));
+
+      if (selected.length > 0) {
+        answered = true;
+        if (isCorrect) {
+          marksAwarded = qData.marks;
+        } else if (testConfig.negativeMarking) {
+          marksAwarded = -(qData.marks * testConfig.negativeValue);
+        }
+      }
+    } else {
+      const answer = attempt.answersCoding?.find((a) => a.questionId === qId);
+      if (answer && answer.isCorrect !== null) {
+        answered = true;
+        isCorrect = answer.isCorrect;
+        if (isCorrect) {
+          marksAwarded = qData.marks;
+        } else if (testConfig.negativeMarking) {
+          marksAwarded = -(qData.marks * testConfig.negativeValue);
+        }
       }
     }
 
-    gradedAnswers.push({ questionId: tq.questionId, isCorrect, marksAwarded });
+    if (answered) {
+      totalScore += marksAwarded;
+      if (isCorrect) {
+        topicBreakdown[topic].correct += 1;
+      }
+      topicBreakdown[topic].score += marksAwarded;
+    }
+
+    gradedAnswers.push({ questionId: qId, isCorrect, marksAwarded });
   }
 
   // Clamp score to 0

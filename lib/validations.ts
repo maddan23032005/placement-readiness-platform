@@ -20,6 +20,22 @@ export const mcqQuestionSchema = z.object({
   tags:           z.array(z.string()).optional().default([]),
 });
 
+export const codingQuestionSchema = z.object({
+  title:          z.string().min(3),
+  description:    z.string().min(5),
+  language:       z.string().default("javascript"),
+  starterCode:    z.string(),
+  testCases:      z.array(z.object({
+    input: z.string(),
+    expectedOutput: z.string(),
+    isHidden: z.boolean().default(false)
+  })).min(1),
+  solutionCode:   z.string().optional(),
+  topic:          z.string().min(1),
+  difficulty:     z.enum(["EASY", "MEDIUM", "HARD"]),
+  tags:           z.array(z.string()).optional().default([]),
+});
+
 export const createTestSchema = z.object({
   title:          z.string().min(3),
   description:    z.string().optional(),
@@ -30,7 +46,8 @@ export const createTestSchema = z.object({
   negativeValue:  z.number().min(0).default(0.25),
   batchIds:       z.array(z.string()),
   questions:      z.array(z.object({
-    questionId: z.string(),
+    questionId: z.string().optional(),
+    questionCodingId: z.string().optional(),
     marks:      z.number().min(0.5),
     order:      z.number().int().min(0),
   })),
@@ -38,7 +55,8 @@ export const createTestSchema = z.object({
 
 export const autosaveSchema = z.object({
   questionId:      z.string(),
-  selectedOptions: z.array(z.number().int().min(0)),
+  selectedOptions: z.array(z.number().int().min(0)).optional(),
+  submittedCode:   z.string().optional(),
 });
 
 export const batchSchema = z.object({

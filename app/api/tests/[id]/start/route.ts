@@ -20,6 +20,9 @@ export async function POST(
           question: {
             select: { id: true, text: true, options: true, topic: true, difficulty: true },
           },
+          questionCoding: {
+            select: { id: true, title: true, description: true, language: true, starterCode: true, topic: true, difficulty: true, testCases: true },
+          },
         },
         orderBy: { order: "asc" },
       },
@@ -30,7 +33,7 @@ export async function POST(
 
   const existing = await db.attempt.findUnique({
     where: { testId_studentId: { testId, studentId: session.user.id } },
-    include: { answers: true },
+    include: { answers: true, answersCoding: true },
   });
 
   if (existing) {
@@ -40,10 +43,23 @@ export async function POST(
 
     const questionOrder = existing.questionOrder as string[];
     const orderedQuestions = questionOrder.map((qId) => {
-      const tq = test.questions.find((q) => q.question.id === qId)!;
+      const tq = test.questions.find((q) => (q.question?.id === qId) || (q.questionCoding?.id === qId))!;
+      if (tq.question) {
+        return {
+          type: "MCQ",
+          ...tq.question,
+          options: tq.question.options as string[],
+          marks: tq.marks,
+        };
+      }
       return {
-        ...tq.question,
-        options: shuffleOptions(tq.question.options as string[], session.user.id, qId),
+        type: "CODING",
+        ...tq.questionCoding,
+        testCases: (tq.questionCoding?.testCases as any[]).map(tc => ({
+          input: tc.input,
+          expectedOutput: tc.isHidden ? undefined : tc.expectedOutput,
+          isHidden: tc.isHidden
+        })),
         marks: tq.marks,
       };
     });
@@ -57,26 +73,43 @@ export async function POST(
         questionId: a.questionId,
         selectedOptions: a.selectedOptions,
       })),
+      savedCodingAnswers: existing.answersCoding.map((a) => ({
+        questionId: a.questionId,
+        submittedCode: a.submittedCode,
+        testCaseResults: a.testCaseResults,
+      })),
     });
   }
 
-  const questionIds = test.questions.map((q) => q.question.id);
-  const shuffledIds = shuffleArray([...questionIds], session.user.id);
+  const questionIds = test.questions.map((q) => (q.question?.id || q.questionCoding?.id) as string);
 
   const attempt = await db.attempt.create({
     data: {
       testId,
       studentId: session.user.id,
-      questionOrder: shuffledIds,
+      questionOrder: questionIds,
       status: "IN_PROGRESS",
     },
   });
 
-  const orderedQuestions = shuffledIds.map((qId) => {
-    const tq = test.questions.find((q) => q.question.id === qId)!;
+  const orderedQuestions = questionIds.map((qId) => {
+    const tq = test.questions.find((q) => (q.question?.id === qId) || (q.questionCoding?.id === qId))!;
+    if (tq.question) {
+      return {
+        type: "MCQ",
+        ...tq.question,
+        options: tq.question.options as string[],
+        marks: tq.marks,
+      };
+    }
     return {
-      ...tq.question,
-      options: shuffleOptions(tq.question.options as string[], session.user.id, qId),
+      type: "CODING",
+      ...tq.questionCoding,
+      testCases: (tq.questionCoding?.testCases as any[]).map(tc => ({
+        input: tc.input,
+        expectedOutput: tc.isHidden ? undefined : tc.expectedOutput,
+        isHidden: tc.isHidden
+      })),
       marks: tq.marks,
     };
   });
@@ -87,24 +120,8 @@ export async function POST(
     startedAt: attempt.startedAt,
     durationMins: test.durationMins,
     savedAnswers: [],
+    savedCodingAnswers: [],
   });
 }
 
-function shuffleArray(arr: string[], seed: string): string[] {
-  const seeded = [...arr];
-  let hash = 0;
-  for (const c of seed) hash = ((hash << 5) - hash + c.charCodeAt(0)) | 0;
-  for (let i = seeded.length - 1; i > 0; i--) {
-    hash = ((hash << 5) - hash + i) | 0;
-    const j = Math.abs(hash) % (i + 1);
-    [seeded[i], seeded[j]] = [seeded[j], seeded[i]];
-  }
-  return seeded;
-}
 
-function shuffleOptions(options: string[], studentId: string, questionId: string): string[] {
-  return shuffleArray(
-    options.map((_, i) => String(i)),
-    studentId + questionId
-  ).map((i) => options[Number(i)]);
-}

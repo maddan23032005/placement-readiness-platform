@@ -34,7 +34,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[999] flex items-center justify-center p-4"
     >
       {/* Backdrop */}
       <div
@@ -44,7 +44,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
       {/* Panel */}
       <div
         className={cn(
-          "relative w-full bg-white rounded-2xl shadow-md border border-[hsl(var(--border))] flex flex-col",
+          "relative w-full bg-[hsl(var(--surface))] rounded-2xl shadow-md border border-[hsl(var(--border))] flex flex-col",
           sizeMap[size]
         )}
       >
@@ -105,6 +105,36 @@ export function ConfirmDialog({
         <>
           <Button variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
           <Button variant={variant} onClick={onConfirm} loading={loading}>{confirmLabel}</Button>
+        </>
+      }
+    >
+      <p className="text-sm text-[hsl(var(--text-secondary))]">{description}</p>
+    </Modal>
+  );
+}
+
+interface AlertDialogProps {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  description: string;
+  buttonLabel?: string;
+  variant?: "destructive" | "primary" | "warning";
+}
+
+export function AlertDialog({
+  open, onClose, title, description,
+  buttonLabel = "Acknowledge", variant = "warning"
+}: AlertDialogProps) {
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={title}
+      size="sm"
+      footer={
+        <>
+          <Button variant={variant as any} onClick={onClose}>{buttonLabel}</Button>
         </>
       }
     >

@@ -1,7 +1,10 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import { ButtonHTMLAttributes, forwardRef } from "react";
+import { motion, HTMLMotionProps } from "framer-motion";
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends Omit<HTMLMotionProps<"button">, "disabled">, ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "destructive" | "ghost" | "outline";
   size?: "sm" | "md" | "lg";
   loading?: boolean;
@@ -9,38 +12,40 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses = {
   primary:
-    "bg-[hsl(var(--brand))] text-white hover:bg-[hsl(var(--brand-dark))] hover:shadow-md hover:-translate-y-px active:scale-[0.98] focus-visible:ring-[hsl(var(--brand)/0.4)]",
+    "bg-[hsl(var(--brand))] text-white shadow-sm hover:shadow-md hover:bg-[hsl(var(--brand-dark))] focus-visible:ring-[hsl(var(--brand)/0.4)]",
   secondary:
-    "bg-[hsl(var(--surface-2))] text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--border))] hover:-translate-y-px active:scale-[0.98] focus-visible:ring-[hsl(var(--brand)/0.3)]",
+    "bg-[hsl(var(--surface-2))] text-[hsl(var(--text-primary))] shadow-sm border border-transparent hover:border-[hsl(var(--border))] hover:bg-[hsl(var(--surface-2))] focus-visible:ring-[hsl(var(--brand)/0.3)]",
   outline:
-    "border border-[hsl(var(--border))] bg-white text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-2))] hover:-translate-y-px active:scale-[0.98] focus-visible:ring-[hsl(var(--brand)/0.3)]",
+    "border border-[hsl(var(--border))] bg-[hsl(var(--surface))] text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-2))] focus-visible:ring-[hsl(var(--brand)/0.3)]",
   destructive:
-    "bg-[hsl(var(--error))] text-white hover:bg-[hsl(0_72%_44%)] hover:shadow-md hover:-translate-y-px active:scale-[0.98] focus-visible:ring-[hsl(var(--error)/0.4)]",
+    "bg-[hsl(var(--error))] text-white shadow-sm hover:shadow-md hover:bg-[hsl(0_72%_44%)] focus-visible:ring-[hsl(var(--error)/0.4)]",
   ghost:
-    "bg-transparent text-[hsl(var(--text-secondary))] hover:bg-[hsl(var(--surface-2))] hover:text-[hsl(var(--text-primary))] active:scale-[0.98] focus-visible:ring-[hsl(var(--brand)/0.3)]",
+    "bg-transparent text-[hsl(var(--text-secondary))] hover:bg-[hsl(var(--surface-2))] hover:text-[hsl(var(--text-primary))] focus-visible:ring-[hsl(var(--brand)/0.3)]",
 };
 
 const sizeClasses = {
   sm: "h-8 px-3 text-xs gap-1.5",
   md: "h-9 px-4 text-sm gap-2",
-  lg: "h-10 px-5 text-sm gap-2",
+  lg: "h-11 px-6 text-sm gap-2 rounded-xl",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "primary", size = "md", loading, disabled, children, ...props }, ref) => {
     return (
-      <button
+      <motion.button
         ref={ref}
         disabled={disabled || loading}
+        whileHover={disabled || loading ? {} : { y: -1, scale: 1.01 }}
+        whileTap={disabled || loading ? {} : { scale: 0.98 }}
         className={cn(
-          "inline-flex items-center justify-center rounded-lg font-medium transition-colors duration-150",
+          "inline-flex items-center justify-center rounded-lg font-semibold transition-colors duration-200",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
           "disabled:opacity-50 disabled:cursor-not-allowed",
           variantClasses[variant],
           sizeClasses[size],
           className
         )}
-        {...props}
+        {...(props as any)}
       >
         {loading && (
           <svg
@@ -54,7 +59,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           </svg>
         )}
         {children}
-      </button>
+      </motion.button>
     );
   }
 );

@@ -15,7 +15,10 @@ export default async function TestResultsPage({ params }: { params: Promise<{ id
     where: { id, createdById: session!.user.id },
     include: {
       questions: {
-        include: { question: { select: { id: true, text: true, topic: true } } },
+        include: { 
+          question: { select: { id: true, text: true, topic: true } },
+          questionCoding: { select: { id: true, title: true, topic: true } },
+        },
         orderBy: { order: "asc" },
       },
     },
@@ -34,21 +37,34 @@ export default async function TestResultsPage({ params }: { params: Promise<{ id
     select: { questionId: true, isCorrect: true },
   });
 
+  const answersCoding = await db.answerCoding.findMany({
+    where: { attempt: { testId: id, status: "SUBMITTED" } },
+    select: { questionId: true, isCorrect: true },
+  });
+
   const maxScore = test.questions.reduce((s, q) => s + q.marks, 0);
   const avgScore = results.length
     ? results.reduce((s, r) => s + r.totalScore, 0) / results.length
     : 0;
 
   const questionStats = test.questions.map((tq) => {
-    const qAnswers = answers.filter((a) => a.questionId === tq.question.id);
+    const isCoding = !!tq.questionCoding;
+    const qId = isCoding ? tq.questionCoding!.id : tq.question!.id;
+    const qAnswers = isCoding 
+      ? answersCoding.filter((a) => a.questionId === qId)
+      : answers.filter((a) => a.questionId === qId);
+
     const correct = qAnswers.filter((a) => a.isCorrect).length;
+    const text = isCoding ? tq.questionCoding!.title : tq.question!.text;
+    
     return {
-      questionId: tq.question.id,
-      text: tq.question.text.slice(0, 60) + (tq.question.text.length > 60 ? "…" : ""),
-      topic: tq.question.topic,
+      questionId: qId,
+      text: text.slice(0, 60) + (text.length > 60 ? "…" : ""),
+      topic: isCoding ? tq.questionCoding!.topic : tq.question!.topic,
       total: qAnswers.length,
       correct,
       correctRate: qAnswers.length > 0 ? Math.round((correct / qAnswers.length) * 100) : 0,
+      isCoding,
     };
   });
 
@@ -96,37 +112,39 @@ export default async function TestResultsPage({ params }: { params: Promise<{ id
         {results.length === 0 ? (
           <p className="text-sm text-[hsl(var(--text-muted))] py-6 text-center">No submissions yet.</p>
         ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Student</th>
-                <th>Score</th>
-                <th>Percentage</th>
-                <th>Time Taken</th>
-              </tr>
-            </thead>
-            <tbody>
-              {results.map((r, i) => {
-                const pct = Math.round((r.totalScore / r.maxScore) * 100);
-                const mins = Math.floor(r.timeTakenSecs / 60);
-                const secs = r.timeTakenSecs % 60;
-                return (
-                  <tr key={r.id}>
-                    <td className="text-[hsl(var(--text-muted))] font-medium">{i + 1}</td>
-                    <td className="font-medium">{r.attempt.student.name}</td>
-                    <td>{r.totalScore} / {r.maxScore}</td>
-                    <td>
-                      <span className={`font-semibold ${pct >= 60 ? "text-[hsl(var(--success))]" : "text-[hsl(var(--error))]"}`}>
-                        {pct}%
-                      </span>
-                    </td>
-                    <td className="text-[hsl(var(--text-muted))]">{mins}m {secs}s</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Student</th>
+                  <th>Score</th>
+                  <th>Percentage</th>
+                  <th>Time Taken</th>
+                </tr>
+              </thead>
+              <tbody>
+                {results.map((r, i) => {
+                  const pct = Math.round((r.totalScore / r.maxScore) * 100);
+                  const mins = Math.floor(r.timeTakenSecs / 60);
+                  const secs = r.timeTakenSecs % 60;
+                  return (
+                    <tr key={r.id}>
+                      <td className="text-[hsl(var(--text-muted))] font-medium">{i + 1}</td>
+                      <td className="font-medium">{r.attempt.student.name}</td>
+                      <td>{r.totalScore} / {r.maxScore}</td>
+                      <td>
+                        <span className={`font-semibold ${pct >= 60 ? "text-[hsl(var(--success))]" : "text-[hsl(var(--error))]"}`}>
+                          {pct}%
+                        </span>
+                      </td>
+                      <td className="text-[hsl(var(--text-muted))]">{mins}m {secs}s</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </Card>
     </div>

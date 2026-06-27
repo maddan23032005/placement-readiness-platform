@@ -130,27 +130,32 @@ export default function BatchesPage() {
       ) : (
         <div className="space-y-3">
           {batches.map((b) => (
-            <div key={b.id} className="card p-5 flex items-center gap-5">
-              <div className="w-10 h-10 rounded-xl bg-[hsl(var(--surface-2))] flex items-center justify-center shrink-0">
-                <Users size={18} className="text-[hsl(var(--text-secondary))]" />
+            <div key={b.id} className="card p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-4 md:gap-5">
+              <div className="flex items-center gap-3 w-full md:w-auto md:flex-1">
+                <div className="w-10 h-10 rounded-xl bg-[hsl(var(--surface-2))] flex items-center justify-center shrink-0">
+                  <Users size={18} className="text-[hsl(var(--text-secondary))]" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-[hsl(var(--text-primary))]">{b.name}</p>
+                  <p className="text-xs text-[hsl(var(--text-muted))]">
+                    {b._count.members} student{b._count.members !== 1 ? "s" : ""}
+                  </p>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-[hsl(var(--text-primary))]">{b.name}</p>
-                <p className="text-xs text-[hsl(var(--text-muted))]">
-                  {b._count.members} student{b._count.members !== 1 ? "s" : ""}
-                </p>
+              <div className="w-full md:w-auto border-t md:border-0 border-[hsl(var(--border))] pt-3 md:pt-0 mt-1 md:mt-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full md:w-auto justify-center"
+                  onClick={() => {
+                    setEnrollModal({ batchId: b.id, batchName: b.name });
+                    setEnrollEmail("");
+                    fetchMembers(b.id);
+                  }}
+                >
+                  <UserPlus size={14} /> Manage students
+                </Button>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setEnrollModal({ batchId: b.id, batchName: b.name });
-                  setEnrollEmail("");
-                  fetchMembers(b.id);
-                }}
-              >
-                <UserPlus size={14} /> Manage students
-              </Button>
             </div>
           ))}
         </div>

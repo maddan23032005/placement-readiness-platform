@@ -14,8 +14,9 @@ interface Question {
   text: string;
   topic: string;
   difficulty: string;
-  options: string[];
+  options?: string[];
   marks?: number;
+  type: "MCQ" | "CODING";
 }
 
 interface Batch {
@@ -60,9 +61,17 @@ export default function CreateTestPage() {
       if (qSearch) params.set("search", qSearch);
       if (qTopic) params.set("topic", qTopic);
       if (qDiff) params.set("difficulty", qDiff);
-      const res = await fetch(`/api/questions/mcq?${params}`);
-      const data = await res.json();
-      setAllQuestions(data.questions || []);
+      const [res1, res2] = await Promise.all([
+        fetch(`/api/questions/mcq?${params}`),
+        fetch(`/api/questions/coding?${params}`)
+      ]);
+      const data1 = await res1.json();
+      const data2 = await res2.json();
+      
+      const mcqs = (data1.questions || []).map((q: any) => ({ ...q, type: "MCQ" }));
+      const codings = (data2.questions || []).map((q: any) => ({ ...q, text: q.title, type: "CODING" }));
+      
+      setAllQuestions([...mcqs, ...codings]);
       setQLoading(false);
     }
     if (step === 1) fetchQuestions();
@@ -78,7 +87,7 @@ export default function CreateTestPage() {
 
   function validateStep0() {
     const errs: Record<string, string> = {};
-    if (!title.trim()) errs.title = "Title is required";
+    if (!title.trim() || title.trim().length < 3) errs.title = "Title must be at least 3 characters";
     if (!durationMins || Number(durationMins) < 1) errs.durationMins = "Duration must be at least 1 minute";
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -119,13 +128,23 @@ export default function CreateTestPage() {
           negativeMarking,
           negativeValue: Number(negativeValue),
           batchIds: selectedBatches,
-          questions: selected.map((q, i) => ({ questionId: q.id, marks: q.marks, order: i })),
+          questions: selected.map((q, i) => ({ 
+            questionId: q.type === "MCQ" ? q.id : undefined,
+            questionCodingId: q.type === "CODING" ? q.id : undefined,
+            marks: q.marks, 
+            order: i 
+          })),
         }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Failed to create test");
+        if (data.details && data.details.fieldErrors) {
+          const firstErr = Object.values(data.details.fieldErrors)[0] as string[];
+          toast.error(firstErr[0] || data.error || "Validation failed");
+        } else {
+          toast.error(data.error || "Failed to create test");
+        }
         setLoading(false);
         return;
       }
@@ -309,6 +328,9 @@ export default function CreateTestPage() {
                             q.difficulty === "EASY" ? "badge-success" :
                             q.difficulty === "MEDIUM" ? "badge-warning" : "badge-error"
                           )}>{q.difficulty}</span>
+                          <span className={cn("badge", q.type === "CODING" ? "badge-info" : "badge-neutral")}>
+                            {q.type}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -326,7 +348,10 @@ export default function CreateTestPage() {
                 {selected.map((q, i) => (
                   <div key={q.id} className="flex items-center gap-3 p-3 bg-[hsl(var(--surface-2))] rounded-lg">
                     <span className="text-xs font-semibold text-[hsl(var(--text-muted))] w-6 text-center">{i + 1}</span>
-                    <p className="text-sm flex-1 text-[hsl(var(--text-primary))] truncate">{q.text}</p>
+                    <p className="text-sm flex-1 text-[hsl(var(--text-primary))] truncate">
+                      <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded mr-2", q.type === "CODING" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700")}>{q.type}</span>
+                      {q.text}
+                    </p>
                     <div className="flex items-center gap-2 shrink-0">
                       <label className="text-xs text-[hsl(var(--text-muted))]">Marks:</label>
                       <input

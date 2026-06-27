@@ -72,7 +72,7 @@ export function ToastContainer() {
           key={t.id}
           role="alert"
           className={cn(
-            "flex items-start gap-3 bg-white rounded-lg border px-4 py-3 shadow-md",
+            "flex items-start gap-3 bg-[hsl(var(--surface))] rounded-lg border px-4 py-3 shadow-md",
             "animate-in slide-in-from-right-4 duration-200",
             borderMap[t.type]
           )}

@@ -28,6 +28,13 @@ export default async function ResultPage({ params }: { params: Promise<{ id: str
           },
         },
       },
+      answersCoding: {
+        include: {
+          question: {
+            select: { id: true, title: true, topic: true },
+          },
+        },
+      },
     },
   });
 
@@ -41,6 +48,16 @@ export default async function ResultPage({ params }: { params: Promise<{ id: str
   }>;
   const mins = Math.floor(result.timeTakenSecs / 60);
   const secs = result.timeTakenSecs % 60;
+
+  const questionOrder = (attempt.questionOrder as string[]) || [];
+
+  const sortedAnswers = [...attempt.answers].sort((a, b) => {
+    return questionOrder.indexOf(a.questionId) - questionOrder.indexOf(b.questionId);
+  });
+
+  const sortedAnswersCoding = [...(attempt.answersCoding || [])].sort((a, b) => {
+    return questionOrder.indexOf(a.questionId) - questionOrder.indexOf(b.questionId);
+  });
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -121,7 +138,7 @@ export default async function ResultPage({ params }: { params: Promise<{ id: str
           Answer Review
         </h2>
         <div className="space-y-4">
-          {attempt.answers.map((ans, i) => {
+          {sortedAnswers.map((ans, i) => {
             const q = ans.question;
             const opts = q.options as string[];
             const correct = q.correctOptions as number[];
@@ -166,6 +183,52 @@ export default async function ResultPage({ params }: { params: Promise<{ id: str
                       </div>
                     );
                   })}
+                </div>
+
+                <div className="flex items-center justify-between mt-3 pl-8">
+                  <span className="badge-neutral">{q.topic}</span>
+                  <span className={cn("text-xs font-medium",
+                    (ans.marksAwarded ?? 0) > 0 ? "text-[hsl(var(--success))]" :
+                    (ans.marksAwarded ?? 0) < 0 ? "text-[hsl(var(--error))]" :
+                    "text-[hsl(var(--text-muted))]"
+                  )}>
+                    {(ans.marksAwarded ?? 0) > 0 ? "+" : ""}{ans.marksAwarded ?? 0} marks
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+
+          {sortedAnswersCoding.map((ans, i) => {
+            const q = ans.question;
+            const isCorrect = ans.isCorrect;
+            const offsetIdx = sortedAnswers.length + i;
+
+            return (
+              <div key={ans.id} className={cn(
+                "border rounded-xl p-5",
+                isCorrect === true ? "border-[hsl(var(--success)/0.3)] bg-[hsl(var(--success)/0.04)]" :
+                isCorrect === null ? "border-[hsl(var(--border))] bg-[hsl(var(--surface-2))]" :
+                "border-[hsl(var(--error)/0.3)] bg-[hsl(var(--error)/0.04)]"
+              )}>
+                <div className="flex items-start gap-3 mb-3">
+                  {isCorrect === true
+                    ? <CheckCircle size={17} className="text-[hsl(var(--success))] shrink-0 mt-0.5" />
+                    : isCorrect === null
+                    ? <div className="w-[17px] h-[17px] rounded-full border-2 border-[hsl(var(--border))] shrink-0 mt-0.5" />
+                    : <XCircle size={17} className="text-[hsl(var(--error))] shrink-0 mt-0.5" />
+                  }
+                  <div>
+                    <p className="text-xs text-[hsl(var(--text-muted))] mb-1">Q{offsetIdx + 1} (Coding)</p>
+                    <p className="text-sm font-medium text-[hsl(var(--text-primary))] leading-relaxed">{q.title}</p>
+                  </div>
+                </div>
+
+                <div className="pl-8 mb-4">
+                  <p className="text-xs font-semibold mb-2 text-[hsl(var(--text-secondary))]">Submitted Code:</p>
+                  <pre className="bg-black/5 p-3 rounded-md text-xs font-mono overflow-x-auto whitespace-pre-wrap">
+                    {ans.submittedCode || "// No code submitted"}
+                  </pre>
                 </div>
 
                 <div className="flex items-center justify-between mt-3 pl-8">

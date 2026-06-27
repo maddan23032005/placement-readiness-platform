@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ToastContainer } from "@/components/ui/Toast";
 import { SessionProvider } from "next-auth/react";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { SWCleanup } from "@/components/SWCleanup";
 
 export const metadata: Metadata = {
   title: {
@@ -26,11 +28,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
         />
       </head>
-      <body>
-        <SessionProvider>
-          {children}
-          <ToastContainer />
-        </SessionProvider>
+      <body suppressHydrationWarning>
+        <SWCleanup />
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+          <SessionProvider>
+            {children}
+            <ToastContainer />
+          </SessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

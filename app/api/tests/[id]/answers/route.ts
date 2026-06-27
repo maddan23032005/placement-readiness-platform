@@ -19,7 +19,7 @@ export async function POST(
     return NextResponse.json({ error: "Validation failed" }, { status: 400 });
   }
 
-  const { questionId, selectedOptions } = parsed.data;
+  const { questionId, selectedOptions, submittedCode } = parsed.data;
 
   const attempt = await db.attempt.findUnique({
     where: { testId_studentId: { testId, studentId: session.user.id } },
@@ -29,11 +29,19 @@ export async function POST(
     return NextResponse.json({ error: "No active attempt" }, { status: 409 });
   }
 
-  await db.answerMCQ.upsert({
-    where: { attemptId_questionId: { attemptId: attempt.id, questionId } },
-    create: { attemptId: attempt.id, questionId, selectedOptions, savedAt: new Date() },
-    update: { selectedOptions, savedAt: new Date() },
-  });
+  if (submittedCode !== undefined) {
+    await db.answerCoding.upsert({
+      where: { attemptId_questionId: { attemptId: attempt.id, questionId } },
+      create: { attemptId: attempt.id, questionId, submittedCode, savedAt: new Date() },
+      update: { submittedCode, savedAt: new Date() },
+    });
+  } else if (selectedOptions !== undefined) {
+    await db.answerMCQ.upsert({
+      where: { attemptId_questionId: { attemptId: attempt.id, questionId } },
+      create: { attemptId: attempt.id, questionId, selectedOptions, savedAt: new Date() },
+      update: { selectedOptions, savedAt: new Date() },
+    });
+  }
 
   return NextResponse.json({ ok: true });
 }

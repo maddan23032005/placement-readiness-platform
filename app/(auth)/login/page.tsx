@@ -45,54 +45,63 @@ export default function LoginPage() {
   }
 
   return (
-    <Card>
-      <h1 className="text-xl font-bold text-[hsl(var(--text-primary))] mb-1">Sign in</h1>
-      <p className="text-sm text-[hsl(var(--text-secondary))] mb-6">
-        Enter your credentials to access the platform.
-      </p>
+    <div className="w-full">
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-[hsl(var(--text-primary))] tracking-tight mb-2">Sign in</h2>
+        <p className="text-[hsl(var(--text-secondary))]">
+          Enter your credentials to access your account.
+        </p>
+      </div>
 
       {errors.general && (
-        <div role="alert" className="flex items-center gap-2 bg-[hsl(var(--error)/0.08)] border border-[hsl(var(--error)/0.3)] text-[hsl(var(--error))] text-sm rounded-lg px-4 py-3 mb-4">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <div role="alert" className="flex items-center gap-3 bg-[hsl(var(--error)/0.08)] border border-[hsl(var(--error)/0.2)] text-[hsl(var(--error))] text-sm rounded-xl px-4 py-3.5 mb-6 shadow-sm">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
             <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5"/>
             <path d="M8 5v3.5M8 11h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
-          {errors.general}
+          <span className="font-medium">{errors.general}</span>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} noValidate className="space-y-4">
-        <Input
-          id="email"
-          type="email"
-          label="Email address"
-          placeholder="you@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          error={errors.email}
-          autoComplete="email"
-        />
-        <Input
-          id="password"
-          type="password"
-          label="Password"
-          placeholder="Enter your password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          error={errors.password}
-          autoComplete="current-password"
-        />
-        <Button type="submit" loading={loading} className="w-full" size="lg">
-          Sign in
-        </Button>
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <div className="space-y-4">
+          <Input
+            id="email"
+            type="email"
+            label="Email address"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            error={errors.email}
+            autoComplete="email"
+          />
+          <Input
+            id="password"
+            type="password"
+            label="Password"
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            error={errors.password}
+            autoComplete="current-password"
+          />
+        </div>
+        
+        <div className="pt-2">
+          <Button type="submit" loading={loading} className="w-full text-base font-semibold shadow-md hover:shadow-lg transition-all" size="lg">
+            Sign in to account
+          </Button>
+        </div>
       </form>
 
-      <p className="text-center text-sm text-[hsl(var(--text-secondary))] mt-6">
-        Don&apos;t have an account?{" "}
-        <Link href="/signup" className="font-medium text-[hsl(var(--brand))] hover:underline">
-          Create one
-        </Link>
-      </p>
-    </Card>
+      <div className="mt-8 pt-6 border-t border-[hsl(var(--border))] text-center">
+        <p className="text-sm text-[hsl(var(--text-secondary))]">
+          Don&apos;t have an account?{" "}
+          <Link href="/signup" className="font-semibold text-[hsl(var(--brand))] hover:text-[hsl(var(--brand-dark))] transition-colors">
+            Create one now
+          </Link>
+        </p>
+      </div>
+    </div>
   );
 }

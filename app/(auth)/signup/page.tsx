@@ -72,23 +72,25 @@ export default function SignupPage() {
   }
 
   return (
-    <Card>
-      <h1 className="text-xl font-bold text-[hsl(var(--text-primary))] mb-1">Create an account</h1>
-      <p className="text-sm text-[hsl(var(--text-secondary))] mb-5">
-        Join the platform as a student or trainer.
-      </p>
+    <div className="w-full">
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-[hsl(var(--text-primary))] tracking-tight mb-2">Create an account</h2>
+        <p className="text-[hsl(var(--text-secondary))]">
+          Join the platform as a student or trainer.
+        </p>
+      </div>
 
       {/* Role selector */}
-      <div className="flex rounded-lg border border-[hsl(var(--border))] p-1 mb-5 bg-[hsl(var(--surface-2))]">
+      <div className="flex rounded-xl border border-[hsl(var(--border))] p-1.5 mb-6 bg-[hsl(var(--surface-2))] shadow-inner">
         {(["STUDENT", "TRAINER"] as Role[]).map((r) => (
           <button
             key={r}
             type="button"
             onClick={() => setRole(r)}
             className={cn(
-              "flex-1 py-2 text-sm font-medium rounded-md transition-all duration-150",
+              "flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200",
               role === r
-                ? "bg-white text-[hsl(var(--brand))] shadow-sm"
+                ? "bg-[hsl(var(--surface))] text-[hsl(var(--brand))] shadow-sm"
                 : "text-[hsl(var(--text-secondary))] hover:text-[hsl(var(--text-primary))]"
             )}
           >
@@ -98,57 +100,67 @@ export default function SignupPage() {
       </div>
 
       {errors.general && (
-        <div role="alert" className="bg-[hsl(var(--error)/0.08)] border border-[hsl(var(--error)/0.3)] text-[hsl(var(--error))] text-sm rounded-lg px-4 py-3 mb-4">
-          {errors.general}
+        <div role="alert" className="flex items-center gap-3 bg-[hsl(var(--error)/0.08)] border border-[hsl(var(--error)/0.2)] text-[hsl(var(--error))] text-sm rounded-xl px-4 py-3.5 mb-6 shadow-sm">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
+            <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5"/>
+            <path d="M8 5v3.5M8 11h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+          <span className="font-medium">{errors.general}</span>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} noValidate className="space-y-4">
-        <Input id="name" label="Full name" placeholder="Your name" type="text"
-          value={form.name} onChange={(e) => set("name", e.target.value)} error={errors.name} />
-        <Input id="email" label="Email address" placeholder="you@example.com" type="email"
-          value={form.email} onChange={(e) => set("email", e.target.value)} error={errors.email} autoComplete="email" />
-        <Input id="password" label="Password" type="password" placeholder="Min. 8 characters"
-          value={form.password} onChange={(e) => set("password", e.target.value)} error={errors.password} autoComplete="new-password" />
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <div className="space-y-4">
+          <Input id="name" label="Full name" placeholder="Your name" type="text"
+            value={form.name} onChange={(e) => set("name", e.target.value)} error={errors.name} />
+          <Input id="email" label="Email address" placeholder="you@example.com" type="email"
+            value={form.email} onChange={(e) => set("email", e.target.value)} error={errors.email} autoComplete="email" />
+          <Input id="password" label="Password" type="password" placeholder="Min. 8 characters"
+            value={form.password} onChange={(e) => set("password", e.target.value)} error={errors.password} autoComplete="new-password" />
 
-        {/* Role-specific fields */}
-        {role === "STUDENT" && (
-          <div className="space-y-4 pt-2 border-t border-[hsl(var(--border))]">
-            <p className="text-xs font-medium text-[hsl(var(--text-muted))] uppercase tracking-wide pt-1">
-              Student details
-            </p>
-            <Input id="rollNumber" label="Roll number" placeholder="e.g. 21CS001" type="text"
-              value={form.rollNumber} onChange={(e) => set("rollNumber", e.target.value)} />
-            <div className="grid grid-cols-2 gap-3">
-              <Input id="branch" label="Branch" placeholder="e.g. CSE" type="text"
-                value={form.branch} onChange={(e) => set("branch", e.target.value)} />
-              <Input id="gradYear" label="Graduation year" placeholder="e.g. 2026" type="number"
-                value={form.gradYear} onChange={(e) => set("gradYear", e.target.value)} />
+          {/* Role-specific fields */}
+          {role === "STUDENT" && (
+            <div className="space-y-4 pt-4 mt-2 border-t border-[hsl(var(--border))]">
+              <p className="text-xs font-bold text-[hsl(var(--text-muted))] uppercase tracking-wider">
+                Student details
+              </p>
+              <Input id="rollNumber" label="Roll number" placeholder="e.g. 21CS001" type="text"
+                value={form.rollNumber} onChange={(e) => set("rollNumber", e.target.value)} />
+              <div className="grid grid-cols-2 gap-4">
+                <Input id="branch" label="Branch" placeholder="e.g. CSE" type="text"
+                  value={form.branch} onChange={(e) => set("branch", e.target.value)} />
+                <Input id="gradYear" label="Graduation year" placeholder="e.g. 2026" type="number"
+                  value={form.gradYear} onChange={(e) => set("gradYear", e.target.value)} />
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {role === "TRAINER" && (
-          <div className="space-y-4 pt-2 border-t border-[hsl(var(--border))]">
-            <p className="text-xs font-medium text-[hsl(var(--text-muted))] uppercase tracking-wide pt-1">
-              Trainer details
-            </p>
-            <Input id="department" label="Department" placeholder="e.g. Computer Science"
-              type="text" value={form.department} onChange={(e) => set("department", e.target.value)} />
-          </div>
-        )}
+          {role === "TRAINER" && (
+            <div className="space-y-4 pt-4 mt-2 border-t border-[hsl(var(--border))]">
+              <p className="text-xs font-bold text-[hsl(var(--text-muted))] uppercase tracking-wider">
+                Trainer details
+              </p>
+              <Input id="department" label="Department" placeholder="e.g. Computer Science"
+                type="text" value={form.department} onChange={(e) => set("department", e.target.value)} />
+            </div>
+          )}
+        </div>
 
-        <Button type="submit" loading={loading} className="w-full" size="lg">
-          Create account
-        </Button>
+        <div className="pt-2">
+          <Button type="submit" loading={loading} className="w-full text-base font-semibold shadow-md hover:shadow-lg transition-all" size="lg">
+            Create account
+          </Button>
+        </div>
       </form>
 
-      <p className="text-center text-sm text-[hsl(var(--text-secondary))] mt-6">
-        Already have an account?{" "}
-        <Link href="/login" className="font-medium text-[hsl(var(--brand))] hover:underline">
-          Sign in
-        </Link>
-      </p>
-    </Card>
+      <div className="mt-8 pt-6 border-t border-[hsl(var(--border))] text-center">
+        <p className="text-sm text-[hsl(var(--text-secondary))]">
+          Already have an account?{" "}
+          <Link href="/login" className="font-semibold text-[hsl(var(--brand))] hover:text-[hsl(var(--brand-dark))] transition-colors">
+            Sign in
+          </Link>
+        </p>
+      </div>
+    </div>
   );
 }
