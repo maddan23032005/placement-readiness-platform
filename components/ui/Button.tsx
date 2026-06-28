@@ -5,8 +5,7 @@ import { ButtonHTMLAttributes, forwardRef, ReactNode } from "react";
 import { motion, HTMLMotionProps } from "framer-motion";
 
 export interface ButtonProps
-  extends Omit<HTMLMotionProps<"button">, "children" | "disabled">,
-    Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "disabled"> {
+  extends Omit<HTMLMotionProps<"button">, "children" | "disabled"> {
   variant?: "primary" | "secondary" | "destructive" | "ghost" | "outline";
   size?: "sm" | "md" | "lg";
   loading?: boolean;
