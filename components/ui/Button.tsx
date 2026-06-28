@@ -1,13 +1,14 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { ButtonHTMLAttributes, forwardRef } from "react";
+import { ButtonHTMLAttributes, forwardRef, ReactNode } from "react";
 import { motion, HTMLMotionProps } from "framer-motion";
 
-export interface ButtonProps extends Omit<HTMLMotionProps<"button">, "disabled">, ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends Omit<HTMLMotionProps<"button">, "children"> {
   variant?: "primary" | "secondary" | "destructive" | "ghost" | "outline";
   size?: "sm" | "md" | "lg";
   loading?: boolean;
+  children?: ReactNode;
 }
 
 const variantClasses = {
